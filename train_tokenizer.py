@@ -15,9 +15,6 @@ from mope import Mope
 freerec.declare(version='1.0.1')
 
 
-DTYPE = torch.bfloat16
-
-
 cfg = freerec.parser.Parser()
 cfg.add_argument("--num-codebooks", type=int, default=3, help="number of codebooks")
 cfg.add_argument("--num-codewords", type=int, default=256, help="number of codewords per codebook")
@@ -228,8 +225,7 @@ class CoachForSDQ(freerec.launcher.Coach):
 
         for data in self.dataloader:
             data = self.dict_to_device(data)
-            with torch.amp.autocast('cuda', dtype=DTYPE):
-                recon_loss, auxiliary_loss = self.model(data)
+            recon_loss, auxiliary_loss = self.model(data)
             loss = recon_loss + auxiliary_loss
 
             self.optimizer.zero_grad()
