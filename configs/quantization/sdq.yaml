@@ -6,14 +6,14 @@ num_codebooks: 3
 codebook_dim: 128
 apply_shared_codebook: False
 
-hidden_dims: 512,256,128
-commit_weight: 0.5
+hidden_dims: 512,128
+commit_weight: 1.
 dropout_rate: 0.
 
 epochs: 201
 batch_size: 256
 optimizer: AdamW
-lr: 1.e-3
+lr: 5.e-4
 weight_decay: 1.e-3
 
 resolution: 1.

@@ -17,14 +17,14 @@ freerec.declare(version='1.0.1')
 
 cfg = freerec.parser.Parser()
 cfg.add_argument("--num-codebooks", type=int, default=3, help="number of codebooks")
-cfg.add_argument("--num-codewords", type=int, default=256, help="number of codewords per codebook")
+cfg.add_argument("--num-codewords", type=int, default=512, help="number of codewords per codebook")
 cfg.add_argument("--codebook-dim", type=int, default=128, help="dimension of codebook vector")
 cfg.add_argument("--apply-shared-codebook", type=eval, default=False, help="whether sharing the codebook")
-cfg.add_argument("--sk-epsilons", type=str, default='0.,0.,0.003', help="epsilon for sinkhorn iteration")
+cfg.add_argument("--sk-epsilons", type=str, default='0.,0.,0.03', help="epsilon for sinkhorn iteration")
 cfg.add_argument("--sk-iters", type=float, default=50, help="number of iterations for sinkhorn iteration")
 
-cfg.add_argument("--hidden-dims", type=str, default='512,256,128', help="hidden sizes")
-cfg.add_argument("--commit-weight", type=float, default=0.5, help="weight for commitment loss")
+cfg.add_argument("--hidden-dims", type=str, default='512,128', help="hidden sizes")
+cfg.add_argument("--commit-weight", type=float, default=1., help="weight for commitment loss")
 cfg.add_argument("--dropout-rate", type=float, default=0., help="dropout rate")
 cfg.add_argument("--resolution", type=float, default=1., help="for louvain")
 
@@ -37,7 +37,7 @@ cfg.set_defaults(
     epochs=200,
     batch_size=256,
     optimizer='AdamW',
-    lr=1e-3,
+    lr=5.e-4,
     weight_decay=0.,
     seed=1,
 )
@@ -71,7 +71,7 @@ class SDQ(freerec.models.RecSysArch):
         )
 
         dims = [self.Item.embeddings.weight.size(1)] + cfg.hidden_dims + [cfg.codebook_dim]
-        ACT = nn.SiLU
+        ACT = nn.GELU
 
         self.encoder = nn.Sequential()
         for l, (input_dim, output_dim) in enumerate(zip(dims[:-1], dims[1:]), start=1):
