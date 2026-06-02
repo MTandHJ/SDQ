@@ -36,7 +36,14 @@ cfg.add_argument("--hidden-dims", type=str, default="512,128", help="hidden size
 cfg.add_argument("--commit-weight", type=float, default=1.0, help="weight for commitment loss")
 cfg.add_argument("--dropout-rate", type=float, default=0.0, help="dropout rate")
 
+# ode solver
+cfg.add_argument(
+    "--solver", type=str, 
+    choices=('euler', 'midpoint', 'heun2', 'heun3', 'rk4', 'bosh3', 'adaptive_heun', 'fehlberg2', 'dopri5'),
+    default="dopri5"
+)
 
+# graph partition
 cfg.add_argument("--partition-method", type=str, default="leiden")
 cfg.add_argument("--ngroups", type=int, default=16, help="spectral & metis")
 cfg.add_argument("--ufactor", type=int, default=7999, help="metis")
@@ -92,8 +99,8 @@ class SDQ(freerec.models.RecSysArch):
                 self.encoder.append(ACT())
 
         self.quantizer = StructureDiffusionQuantizer(
-            self.dataset,
-            cfg.codebook_dim,
+            self.dataset, cfg.codebook_dim,
+            features=None, solver=cfg.solver,
             num_codebooks=cfg.num_codebooks,
             num_codewords=cfg.num_codewords,
             apply_shared_codebook=cfg.apply_shared_codebook,

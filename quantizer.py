@@ -169,7 +169,9 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
             sk_epsilons,
         )
 
+        freerec.infoLogger(f"[SDQ] >>> ODE Solver: {solver}")
         self.solver = solver
+
         if features is None:
             freerec.infoLogger("[SDQ] >>> Construct co-occurrence graph ...")
             edge_index, edge_weight = self.get_freq_graph()
@@ -239,7 +241,7 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
                 self.diffusion_kernel,
                 x,
                 t,
-                method="dopri5",
+                method=self.solver,
             )[1]
         return z
 
