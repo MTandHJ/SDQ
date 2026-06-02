@@ -126,6 +126,7 @@ class SDQ(freerec.models.RecSysArch):
 
         self.reset_parameters()
 
+    @freerec.utils.timemeter
     def reset_parameters(self):
         for m in self.modules():
             if isinstance(m, nn.Linear):
@@ -137,16 +138,18 @@ class SDQ(freerec.models.RecSysArch):
         with torch.no_grad():
             for codebook in self.quantizer.codebooks:
                 codebook.requires_kmeans_init_ = True
+            
+            self.encoder.to(cfg.device)
+            self.quantizer.to(cfg.device)
 
             num_samples = min(self.Item.count, cfg.num_codewords * 5)
             items = torch.randperm(
                 self.Item.count,
-                device=self.device,
             )[:num_samples]
             items, _ = torch.sort(items)
 
-            self.quantizer.reset_local_graph(items)
-            x = self.Item.embeddings(items)
+            self.quantizer.reset_local_graph(items.clone().to(cfg.device))
+            x = self.Item.embeddings(items).to(cfg.device)
             z = self.encode(x)
 
             self.quantizer(z)
