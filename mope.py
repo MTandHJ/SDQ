@@ -150,7 +150,7 @@ class Mope:
             groups = self.metis(adj, ngroups, ufactor, seed)
         elif method == "louvain":
             groups = self.louvain(adj, resolution, seed)
-        elif method == "ledien":
+        elif method == "leiden":
             groups = self.leiden(adj, resolution, seed)
         groups = torch.tensor(groups)
         return groups
