@@ -1,7 +1,4 @@
-
-
 import os
-
 
 # # path = "logs/Iters/Amazon2014Beauty_550_LOU/0304092437"
 # # path = "logs/Iters/Amazon2014Toys_550_LOU/0304092426"
@@ -16,7 +13,3 @@ for id_ in sorted(os.listdir(path)):
 
 # for i in [1, 5, 10, 100, 200, 500, 1000]:
 #     print(os.path.join(path, f"sem_id_{i}.pkl,"))
-
-            
-
-

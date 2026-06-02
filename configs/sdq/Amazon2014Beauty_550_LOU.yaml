@@ -1,21 +1,30 @@
+# Data
 root: ../data
 tasktag: NEXTITEM
+sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
 
+# Model
 num_codewords: 256
 num_codebooks: 3
 codebook_dim: 128
 apply_shared_codebook: False
-
 hidden_dims: 512,128
 commit_weight: 1.
 dropout_rate: 0.
 
-epochs: 201
+# Training
+epochs: 200
 batch_size: 256
 optimizer: AdamW
 lr: 5.e-4
 weight_decay: 1.e-3
 
+# Inference
+partition_method: leiden
 resolution: 1.
+ufactor: 7999
+ngroups: 16
 
-sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
+# Evaluation
+eval_freq: 5
+which4best: PPL
