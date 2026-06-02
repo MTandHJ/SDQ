@@ -104,25 +104,26 @@ class Mope:
         return groups[np.argsort(indices)]
 
     def leiden(self, adj, resolution: float = 1.0, seed: int = 0):
-        import networkx as nx
+        import igraph as ig
+        import leidenalg as la
 
-        row = adj.row
-        col = adj.col
-        data = adj.data
-        graph = nx.Graph()
-        for i, j, weight in zip(row, col, data):
-            graph.add_edge(i, j, weight=weight)
-        communities = nx.community.leiden_communities(graph, resolution=resolution, seed=seed)
+        row, col, data = adj.row, adj.col, adj.data
+        mask = row < col
+        edges = list(zip(row[mask], col[mask]))
+        weights = data[mask].tolist()
 
-        groups = []
-        indices = []
-        for i, community in enumerate(communities):
-            indices.append(list(community))
-            groups.append([i] * len(community))
+        g = ig.Graph(n=adj.shape[0], edges=edges, directed=False)
+        g.es["weight"] = weights
 
-        indices = np.concatenate(indices)
-        groups = np.concatenate(groups)
-        return groups[np.argsort(indices)]
+        partition = la.find_partition(
+            g,
+            la.RBConfigurationVertexPartition,
+            weights=g.es["weight"],
+            resolution_parameter=resolution,
+            seed=seed,
+        )
+
+        return np.array(partition.membership)
 
     @timemeter
     def partition(
