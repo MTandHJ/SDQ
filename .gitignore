@@ -6,7 +6,12 @@ data/
 models/
 media/
 .vscode/
+.DS_Store
 simple_demo.py
+
+# ruff
+
+.ruff_cache
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
