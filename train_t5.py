@@ -4,10 +4,9 @@ from typing import Dict, Iterable, List, Literal, Sequence, Tuple
 import freerec
 import torch
 import torch.nn.functional as F
+from converter import SemIDConverter, prefix_allowed_tokens_fn
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
 from transformers.generation.stopping_criteria import StoppingCriteriaList
-
-from converter import SemIDConverter, prefix_allowed_tokens_fn
 
 DTYPE = torch.bfloat16
 BACKGROUND_SCORE_MAX = 1.0e-3
@@ -23,10 +22,7 @@ cfg.add_argument("--attention-size", type=int, default=64, help="T5 d_kv")
 cfg.add_argument("--intermediate-size", type=int, default=64 * 4, help="T5 d_ff")
 cfg.add_argument("--num-heads", type=int, default=4, help="number of attention heads")
 cfg.add_argument(
-    "--num-layers",
-    type=int,
-    default=6,
-    help="number of encoder/decoder layers",
+    "--num-layers", type=int, default=6, help="number of encoder/decoder layers"
 )
 cfg.add_argument("--dropout-rate", type=float, default=0.1, help="T5 dropout rate")
 cfg.add_argument(
@@ -35,7 +31,15 @@ cfg.add_argument(
     default="sid_vocab.json",
     help="SID vocabulary JSON file",
 )
-cfg.add_argument("--num-beams", type=int, default=20, help="beam width for full ranking")
+cfg.add_argument(
+    "--num-beams", type=int, default=20, help="beam width for full ranking"
+)
+cfg.add_argument(
+    "--apply-constrained-beam-search",
+    type=eval,
+    default=True,
+    help="whether to apply prefix constraints during full-ranking beam search",
+)
 
 cfg.set_defaults(
     description="TIGER-T5",
@@ -82,6 +86,20 @@ class TIGERT5(freerec.models.SeqRecArch):
         )
         self.t5 = T5ForConditionalGeneration(model_config)
 
+        self.generate_kwargs = {
+            "num_beams": cfg.num_beams,
+            "num_return_sequences": cfg.num_beams,
+            "prefix_allowed_tokens_fn": prefix_allowed_tokens_fn(self.converter),
+            "stopping_criteria": StoppingCriteriaList(
+                [self.converter.stopping_criteria(num_items=1)]
+            ),
+            "max_new_tokens": self.converter.max_num_sid_tokens + 1,
+            "return_dict_in_generate": True,
+            "output_scores": True,
+        }
+        if not cfg.apply_constrained_beam_search:
+            del self.generate_kwargs["prefix_allowed_tokens_fn"]
+
     def format_item_ids(self, field, item_ids: Iterable[int]) -> List[str]:
         return [self.converter.format(item) for item in item_ids]
 
@@ -104,9 +122,7 @@ class TIGERT5(freerec.models.SeqRecArch):
         return (
             self.dataset.train()
             .shuffled_roll_seqs_source(
-                minlen=2,
-                maxlen=maxlen,
-                keep_at_least_itself=True,
+                minlen=2, maxlen=maxlen, keep_at_least_itself=True
             )
             .seq_train_yielding_pos_(start_idx_for_target=-1, end_idx_for_input=-1)
             # [1, 2, 3] -> ['item_1', 'item_2', 'item_3']
@@ -141,7 +157,9 @@ class TIGERT5(freerec.models.SeqRecArch):
             .tensor_()
         )
 
-    def fit(self, data: Dict[freerec.data.fields.Field, str]) -> Dict[str, torch.Tensor]:
+    def fit(
+        self, data: Dict[freerec.data.fields.Field, str]
+    ) -> Dict[str, torch.Tensor]:
         context = self.tokenize_text(data[self.ISeq])
         targets = self.tokenize_text(data[self.IPos])
         labels = targets["input_ids"].masked_fill(
@@ -172,55 +190,57 @@ class TIGERT5(freerec.models.SeqRecArch):
         """Generate constrained next-item candidates and sequence scores."""
         context = self.tokenize_text(data[self.ISeq])
         batch_size = context["input_ids"].size(0)
-        num_beams = cfg.num_beams
 
         outputs = self.t5.generate(
             input_ids=context["input_ids"],
             attention_mask=context["attention_mask"],
             decoder_input_ids=self.prepare_decoder_prefix(batch_size),
-            num_beams=num_beams,
-            num_return_sequences=num_beams,
-            prefix_allowed_tokens_fn=prefix_allowed_tokens_fn(self.converter),
-            stopping_criteria=StoppingCriteriaList([self.converter.stopping_criteria(num_items=1)]),
-            return_dict_in_generate=True,
-            output_scores=True,
+            **self.generate_kwargs,
         )
-        decoded = self.converter.batch_decode(self.tokenizer.batch_decode(outputs.sequences))
-        if any(len(items) != 1 for items in decoded):
-            raise ValueError("constrained generation produced an invalid next-item candidate")
-
+        decoded = self.converter.batch_decode(
+            self.tokenizer.batch_decode(outputs.sequences)
+        )
         candidate_ids = torch.tensor(
-            [items[0] for items in decoded],
+            # self.Item.count is used as a dummy item for invalid Item SIDs
+            [items[0] if len(items) == 1 else self.Item.count for items in decoded],
             dtype=torch.long,
             device=self.device,
-        ).view(batch_size, num_beams)
-        return candidate_ids, outputs.sequences_scores.view(batch_size, num_beams)
+        ).view(batch_size, cfg.num_beams)
+        return candidate_ids, outputs.sequences_scores.view(batch_size, cfg.num_beams)
 
     @torch.no_grad()
     def recommend_from_full(
-        self,
-        data: Dict[freerec.data.fields.Field, str | torch.Tensor],
+        self, data: Dict[freerec.data.fields.Field, str | torch.Tensor]
     ) -> torch.Tensor:
         candidate_ids, sequence_scores = self._generate_full_candidates(data)
         batch_size = candidate_ids.size(0)
         scores = torch.rand(
-            (batch_size, self.Item.count),
+            (batch_size, self.Item.count + 1),
             device=self.device,
         ).mul_(BACKGROUND_SCORE_MAX)
-        raised_scores = sequence_scores - sequence_scores.min(dim=1, keepdim=True).values + BEAM_SCORE_BASE
-        return scores.scatter(dim=1, index=candidate_ids, src=raised_scores)
+        raised_scores = (
+            sequence_scores
+            - sequence_scores.min(dim=1, keepdim=True).values
+            + BEAM_SCORE_BASE
+        )
+        return scores.scatter(
+            dim=1, index=candidate_ids, src=raised_scores
+        )[:, :self.Item.count]
 
     @torch.no_grad()
     def recommend_from_pool(
-        self,
-        data: Dict[freerec.data.fields.Field, str | torch.Tensor],
+        self, data: Dict[freerec.data.fields.Field, str | torch.Tensor]
     ) -> torch.Tensor:
         context = self.tokenize_text(data[self.ISeq])
         candidate_rows = data[self.IUnseen].detach().cpu().tolist()
         candidate_rows = [[int(item) for item in row] for row in candidate_rows]
         candidate_count = len(candidate_rows[0])
 
-        target_texts = [self.converter.encode(self.converter.format(item)) for row in candidate_rows for item in row]
+        target_texts = [
+            self.converter.encode(self.converter.format(item))
+            for row in candidate_rows
+            for item in row
+        ]
         targets = self.tokenize_text(target_texts)
         labels = targets["input_ids"].masked_fill(
             targets["attention_mask"].eq(0),
@@ -229,8 +249,7 @@ class TIGERT5(freerec.models.SeqRecArch):
         outputs = self.t5(
             input_ids=context["input_ids"].repeat_interleave(candidate_count, dim=0),
             attention_mask=context["attention_mask"].repeat_interleave(
-                candidate_count,
-                dim=0,
+                candidate_count, dim=0
             ),
             labels=labels,
             return_dict=True,
@@ -250,7 +269,9 @@ class TIGERT5(freerec.models.SeqRecArch):
         return candidate_scores.view(len(candidate_rows), candidate_count)
 
     def forward(self, data: Dict, ranking: Literal["pool", "full"] = "full"):
-        with torch.amp.autocast("cuda", dtype=DTYPE, enabled=self.device.type == "cuda"):
+        with torch.amp.autocast(
+            "cuda", dtype=DTYPE, enabled=self.device.type == "cuda"
+        ):
             return super().forward(data, ranking)
 
 

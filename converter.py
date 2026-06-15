@@ -125,6 +125,7 @@ class SemIDConverter:
             sid_vocab = self.resolve_collision(sid_vocab)
         self._item_to_sids = sid_vocab
         self._sids_to_item = {sids: item for item, sids in sid_vocab.items()}
+        self.max_num_sid_tokens = max(len(sids) for sids in self._sids_to_item)
 
         self._register_protocol_tokens(self._item_to_sids)
         self._sid_start_id = self.tokenizer.convert_tokens_to_ids(self.SID_START_TOKEN)
@@ -306,7 +307,9 @@ class SemIDConverter:
                 decoded.append(item_id)
         return decoded
 
-    def batch_decode(self, texts: List[str], *, prefix: str = "item") -> List[List[int]]:
+    def batch_decode(
+        self, texts: List[str], *, prefix: str = "item"
+    ) -> List[List[int]]:
         """Extract item identifiers from a batch of protocol strings.
 
         Parameters
@@ -367,7 +370,9 @@ class SemIDConverter:
             node = node[token_id]
         return tuple(node)
 
-    def stopping_criteria(self, num_items: int = 1, *, generation_start: int = 0) -> StoppingCriteria:
+    def stopping_criteria(
+        self, num_items: int = 1, *, generation_start: int = 0
+    ) -> StoppingCriteria:
         """Build a fixed-item-count generation stopping criterion.
 
         Parameters
@@ -385,7 +390,9 @@ class SemIDConverter:
         return ItemCountStoppingCriteria(self._sid_end_id, num_items, generation_start)
 
     @classmethod
-    def _check_sid_vocab(cls, sid_vocab: Dict[str, Tuple[str, ...]]) -> Dict[str, Tuple[str, ...]]:
+    def _check_sid_vocab(
+        cls, sid_vocab: Dict[str, Tuple[str, ...]]
+    ) -> Dict[str, Tuple[str, ...]]:
         for item, sids in sid_vocab.items():
             if cls.ITEM_PATTERN.fullmatch(item) is None:
                 raise ValueError(f"invalid item for {item}")
@@ -441,7 +448,9 @@ class SemIDConverter:
             for check_id, item in enumerate(sorted(items)):
                 resolved[item] = sids + (cls.CHECK_SID_FORMAT.format(id=check_id),)
             max_check_tokens = max(max_check_tokens, len(items))
-        infoLogger(f"[{cls.__name__}] >>> Additional {max_check_tokens} tokens for resolving collision ...")
+        infoLogger(
+            f"[{cls.__name__}] >>> Additional {max_check_tokens} tokens for resolving collision ..."
+        )
         return {item: resolved[item] for item in sorted(resolved)}
 
     def _register_protocol_tokens(self, sid_vocab: Dict[str, Tuple[str, ...]]) -> None:
