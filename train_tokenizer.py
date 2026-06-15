@@ -75,14 +75,13 @@ class SDQ(freerec.models.RecSysArch):
         self.Item.add_module(
             "embeddings",
             nn.Embedding.from_pretrained(
-                F.normalize(
+                self.normalize(
                     freerec.utils.import_pickle(
                         os.path.join(
                             self.dataset.path,
                             cfg.sem_feat_file,
                         )
-                    ),
-                    dim=-1,
+                    )
                 ),
                 freeze=True,
             ),
@@ -132,6 +131,12 @@ class SDQ(freerec.models.RecSysArch):
         self.criterion = nn.MSELoss(reduction="sum")
 
         self.reset_parameters()
+
+    def normalize(self, feats: torch.Tensor) -> torch.Tensor:
+        return F.normalize(
+            feats - feats.mean(dim=0, keepdim=True),
+            dim=-1
+        )
 
     @freerec.utils.timemeter
     def reset_parameters(self):
