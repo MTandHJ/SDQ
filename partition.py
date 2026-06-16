@@ -1,10 +1,10 @@
-from collections import defaultdict
+from functools import partial
+from typing import List
 
 import numpy as np
 import torch
 from freerec.data.datasets import RecDataSet
-from freerec.data.tags import ID, ITEM, SEQUENCE
-from freerec.utils import timemeter
+from freerec.data.tags import ITEM, ID
 from scipy.sparse import coo_array, csr_array
 
 
@@ -12,44 +12,52 @@ class Mope:
     def __init__(
         self,
         dataset: RecDataSet,
+        edge_index: torch.Tensor,
+        edge_weight: torch.Tensor,
+        method: str = "metis",
+        ngroups: int = 16,
+        ufactor: int = 7999,
+        resolution: float = 1.0,
     ):
-        self.dataset = dataset
-        self.Item = self.dataset.fields[ITEM, ID]
-        self.ISeq = self.Item.fork(SEQUENCE)
-
-    def estimate(self):
-        seqs = self.dataset.train().to_seqs(maxlen=50)
-        A = defaultdict(int)
-        for seq in seqs:
-            seq = seq[self.ISeq]
-            for i in range(len(seq) - 1):
-                for j in range(i + 1, len(seq)):
-                    A[(seq[i], seq[j])] += 1
-                    A[(seq[j], seq[i])] += 1
-
-        edge_index, edge_weight = list(A.keys()), list(A.values())
-        edge_index = np.array(edge_index).T
-        edge_weight = np.array(edge_weight)
+        Item = dataset.fields[ITEM, ID]
+        edge_index, edge_weight = edge_index.numpy(), edge_weight.numpy()
         row, col = edge_index[0], edge_index[1]
-        adj = coo_array((edge_weight, (row, col)))
-        return adj
+        self._adj = coo_array((edge_weight, (row, col)), shape=(Item.count, Item.count))
 
-    def single(self, adj: coo_array):
+        if method == "single":
+            self.solver = self.single
+        elif method == "random":
+            self.solver = partial(self.random, ngroups=ngroups)
+        elif method == "spectral":
+            self.solver = partial(self.spectral, ngroups=ngroups)
+        elif method == "metis":
+            self.solver = partial(self.metis, ngroups=ngroups, ufactor=ufactor)
+        elif method == "louvain":
+            self.solver = partial(self.louvain, resolution=resolution)
+        elif method == "leiden":
+            self.solver = partial(self.leiden, resolution=resolution)
+        else:
+            raise NotImplementedError
+
+    def single(self, adj: coo_array, seed: int = 0):
         groups = np.zeros(adj.shape[0], dtype=np.int64)
         return groups
 
-    def random(self, adj: coo_array, ngroups: int = 16):
+    def random(self, adj: coo_array, ngroups: int = 16, seed: int = 0):
         nums = adj.shape[0]
         group_size = nums // ngroups
         groups = [[ngroups - i] * group_size for i in range(ngroups)]
         groups.append([0] * (nums % ngroups))
         groups = np.concatenate(groups)
-        return np.random.permutation(groups)
+        rng = np.random.default_rng(seed)
+        return rng.permutation(groups)
 
     def spectral(self, adj, ngroups: int = 16, seed: int = 0):
         from sklearn.cluster import SpectralClustering
 
-        clustering = SpectralClustering(n_clusters=ngroups, affinity="precomputed", random_state=seed)
+        clustering = SpectralClustering(
+            n_clusters=ngroups, affinity="precomputed", random_state=seed
+        )
 
         adj_coo = adj.tocoo()
         row = adj_coo.row.astype(np.int32)
@@ -125,33 +133,5 @@ class Mope:
 
         return np.array(partition.membership)
 
-    @timemeter
-    def partition(
-        self,
-        edge_index: torch.Tensor,
-        edge_weight: torch.Tensor,
-        method: str = "metis",
-        ngroups: int = 16,
-        ufactor: int = 7999,
-        resolution: float = 1.0,
-        seed: int = 0,
-    ) -> torch.Tensor:
-
-        edge_index, edge_weight = edge_index.numpy(), edge_weight.numpy()
-        row, col = edge_index[0], edge_index[1]
-        adj = coo_array((edge_weight, (row, col)))
-
-        if method == "single":
-            groups = self.single(adj)
-        elif method == "random":
-            groups = self.random(adj, ngroups)
-        elif method == "spectral":
-            groups = self.spectral(adj, ngroups, seed)
-        elif method == "metis":
-            groups = self.metis(adj, ngroups, ufactor, seed)
-        elif method == "louvain":
-            groups = self.louvain(adj, resolution, seed)
-        elif method == "leiden":
-            groups = self.leiden(adj, resolution, seed)
-        groups = torch.tensor(groups)
-        return groups
+    def __call__(self, seed: int = 0) -> np.ndarray:
+        return self.solver(adj=self._adj, seed=seed)
