@@ -88,7 +88,7 @@ class SDQ(freerec.models.RecSysArch):
         )
 
         dims = [self.Item.embeddings.weight.size(1)] + cfg.hidden_dims + [cfg.codebook_dim]
-        ACT = nn.GELU
+        ACT = nn.SiLU
 
         self.encoder = nn.Sequential()
         for l, (input_dim, output_dim) in enumerate(zip(dims[:-1], dims[1:]), start=1):
