@@ -22,15 +22,24 @@ class GroupLauncher(dp.iter.IterDataPipe):
         self.set_seed(0)
 
     def set_seed(self, seed: int):
-        groups = self.partition(seed)
-        self.source = np.argsort(groups).tolist()
+        seed = int(seed) % (2**31 - 1)
         self._rng.seed(seed)
+
+        groups = self.partition(seed)
+        self.source = []
+        for label in np.unique(groups):
+            self.source.append(
+                np.flatnonzero(groups == label).tolist()
+            )
 
     def __iter__(self):
         r"""Yield indices, optionally shuffled."""
         if self.shuffle:
             self._rng.shuffle(self.source)
-        yield from iter(self.source)
+        for items in self.source:
+            if self.shuffle:
+                self._rng.shuffle(items)
+            yield from iter(items)
 
 
 class GroupSource(BaseProcessor):
