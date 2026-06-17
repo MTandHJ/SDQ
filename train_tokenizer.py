@@ -172,7 +172,7 @@ class SDQ(freerec.models.RecSysArch):
             self.dataset
             .train()
             .shuffled_seqs_source(maxlen=50)
-            .batch(batch_size)
+            .batch_(batch_size)
         )
 
     def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
