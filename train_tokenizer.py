@@ -10,7 +10,6 @@ import torch.nn.functional as F
 
 from converter import SemIDConverter
 from partition import Mope
-from sampler import GroupSource
 from quantizer import StructureDiffusionQuantizer
 
 freerec.declare(version="1.0.1")
@@ -169,9 +168,12 @@ class SDQ(freerec.models.RecSysArch):
             self.quantizer(z)
 
     def sure_trainpipe(self, batch_size: int = 512):
-        return GroupSource(
-            self.dataset.train(), self.partition, shuffle=False
-        ).batch_(batch_size).tensor_()
+        return (
+            self.dataset
+            .train()
+            .shuffled_seqs_source(maxlen=50)
+            .batch(batch_size)
+        )
 
     def encode(self, x: torch.Tensor) -> Tuple[torch.Tensor, torch.Tensor]:
         z = self.encoder(x)  # (B, D)
@@ -182,10 +184,9 @@ class SDQ(freerec.models.RecSysArch):
         return F.normalize(x_hat, dim=-1)  # normalization !!!
 
     def fit(self, data: Dict[freerec.data.fields.Field, torch.Tensor]) -> Union[torch.Tensor, Tuple[torch.Tensor]]:
-        # items = set(chain(*data[self.ISeq]))
-        # items = torch.tensor(list(items), dtype=torch.long, device=self.device)
-        # items, _ = torch.sort(items)
-        items = data[self.Item].flatten()
+        items = set(chain(*data[self.ISeq]))
+        items = torch.tensor(list(items), dtype=torch.long, device=self.device)
+        items, _ = torch.sort(items)
         self.quantizer.reset_local_graph(items)
 
         x = self.Item.embeddings(items)
