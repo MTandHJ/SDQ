@@ -1,6 +1,7 @@
 # Data
 root: ../data
 tasktag: NEXTITEM
+dataset: Amazon2014Beauty_550_LOU
 sem_feat_file: sentence-t5-xl_title_categories_brand.pkl
 
 # Model
@@ -9,15 +10,16 @@ num_codebooks: 3
 codebook_dim: 128
 apply_shared_codebook: False
 hidden_dims: 512,128
+sk_epsilons: 0.,0.,0.05
 commit_weight: 1.
 dropout_rate: 0.
 
 # Training
-epochs: 200
+epochs: 300
 batch_size: 256
 optimizer: AdamW
 lr: 5.e-4
-weight_decay: 1.e-3
+weight_decay: 0.
 
 # Inference
 partition_method: leiden
@@ -26,5 +28,6 @@ ufactor: 7999
 ngroups: 16
 
 # Evaluation
-eval_freq: 5
+eval_freq: 10
+CHECKPOINT_FREQ: 10
 which4best: PPL
