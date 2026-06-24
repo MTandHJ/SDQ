@@ -15,7 +15,7 @@ commit_weight: 1.
 dropout_rate: 0.
 
 # Training
-epochs: 300
+epochs: 100
 batch_size: 256
 optimizer: AdamW
 lr: 1.e-4
