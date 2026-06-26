@@ -4,7 +4,7 @@ tasktag: NEXTITEM
 dataset: Amazon2014Beauty_550_LOU
 
 # Model
-maxlen: 50
+maxlen: 20
 embedding_dim: 128
 attention_size: 64
 intermediate_size: 256

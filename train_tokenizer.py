@@ -40,7 +40,7 @@ cfg.add_argument("--dropout-rate", type=float, default=0.0, help="dropout rate")
 cfg.add_argument(
     "--solver", type=str, 
     choices=('euler', 'midpoint', 'heun2', 'heun3', 'rk4', 'bosh3', 'adaptive_heun', 'fehlberg2', 'dopri5'),
-    default="dopri5"
+    default="rk4"
 )
 
 # graph partition
