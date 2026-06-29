@@ -34,16 +34,16 @@ cfg.add_argument("--num-iters", type=int, default=100)
 cfg.add_argument(
     "--solver", type=str, 
     choices=('euler', 'midpoint', 'heun2', 'heun3', 'rk4', 'bosh3', 'adaptive_heun', 'fehlberg2', 'dopri5'),
-    default="rk4"
+    default="dopri5"
 )
 
-cfg.add_argument("--sem-feat-file", type=str, default=None, help="file of semantic features")
+cfg.add_argument("--sem-feat-file", type=str, default="sentence-t5-xl_title_categories_brand.pkl", help="file of semantic features")
 
 cfg.set_defaults(
     description="SDQ-KMeans",
     root="../../data",
     dataset="Amazon2014Beauty_550_LOU",
-    epochs=200,
+    epochs=1,
     batch_size=256,
     optimizer="AdamW",
     lr=5.0e-4,

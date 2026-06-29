@@ -49,7 +49,7 @@ cfg.add_argument("--ngroups", type=int, default=16, help="spectral & metis")
 cfg.add_argument("--ufactor", type=int, default=7999, help="metis")
 cfg.add_argument("--resolution", type=float, default=1.0, help="for louvain & leiden")
 
-cfg.add_argument("--sem-feat-file", type=str, default=None, help="file of semantic features")
+cfg.add_argument("--sem-feat-file", type=str, default="sentence-t5-xl_title_categories_brand.pkl", help="file of semantic features")
 
 cfg.set_defaults(
     description="SDQ",
