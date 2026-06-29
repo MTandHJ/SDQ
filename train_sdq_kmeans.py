@@ -19,14 +19,16 @@ cfg.add_argument("--num-codebooks", type=int, default=3, help="number of codeboo
 cfg.add_argument(
     "--num-codewords",
     type=int,
-    default=512,
+    default=256,
     help="number of codewords per codebook",
 )
-cfg.add_argument("--codebook-dim", type=int, default=128, help="dimension of codebook vector")
-cfg.add_argument("--sk-epsilons", type=str, default="0.,0.,0.", help="epsilon for sinkhorn iteration")
-cfg.add_argument("--sk-iters", type=float, default=50, help="number of iterations for sinkhorn iteration")
-
-cfg.add_argument("--commit-weight", type=float, default=1.0, help="weight for commitment loss")
+cfg.add_argument(
+    "--kmeans-init-method",
+    type=str,
+    choices=("random", "++"),
+    default="random",
+)
+cfg.add_argument("--num-iters", type=int, default=100)
 
 # ode solver
 cfg.add_argument(
@@ -50,9 +52,6 @@ cfg.set_defaults(
 )
 cfg.compile()
 
-cfg.hidden_dims = list(map(int, cfg.hidden_dims.split(",")))
-cfg.sk_epsilons = list(map(float, cfg.sk_epsilons.split(",")))
-
 
 class SDQ(freerec.models.RecSysArch):
     def __init__(self, dataset: freerec.data.datasets.RecDataSet) -> None:
@@ -72,6 +71,7 @@ class SDQ(freerec.models.RecSysArch):
                 freeze=True,
             ),
         )
+        cfg.codebook_dim = self.Item.embeddings.weight.data.size(1)
 
         self.encoder = nn.Identity()
         self.quantizer = StructureDiffusionQuantizer(
@@ -79,10 +79,10 @@ class SDQ(freerec.models.RecSysArch):
             features=None, solver=cfg.solver,
             num_codebooks=cfg.num_codebooks,
             num_codewords=cfg.num_codewords,
-            apply_shared_codebook=cfg.apply_shared_codebook,
-            commit_weight=cfg.commit_weight,
-            sk_iters=cfg.sk_iters,
-            sk_epsilons=cfg.sk_epsilons,
+            apply_shared_codebook=False,
+            trainable=False,
+            kmeans_init_method=cfg.kmeans_init_method,
+            num_iters=cfg.num_iters
         )
         self.decoder = nn.Identity()
 

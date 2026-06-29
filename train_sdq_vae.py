@@ -19,7 +19,7 @@ cfg.add_argument("--num-codebooks", type=int, default=3, help="number of codeboo
 cfg.add_argument(
     "--num-codewords",
     type=int,
-    default=512,
+    default=256,
     help="number of codewords per codebook",
 )
 cfg.add_argument("--codebook-dim", type=int, default=128, help="dimension of codebook vector")

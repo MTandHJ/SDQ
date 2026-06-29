@@ -65,6 +65,44 @@ class CodeBook(nn.Embedding):
             self.requires_kmeans_init_ = False
         return self.weight
 
+    @staticmethod
+    def straight_through_estimator(z: torch.Tensor, q: torch.Tensor) -> torch.Tensor:
+        return z + (q - z).detach()
+
+
+class KMeansCodeBook(CodeBook):
+
+    def __init__(
+        self, 
+        num_embeddings, embedding_dim,
+        kmeans_init_method: Literal['random', '++'] = '++',
+        num_iters: int = 100, 
+    ):
+        super().__init__(num_embeddings, embedding_dim)
+
+        self.kmeans_init_method = kmeans_init_method
+        self.num_iters = num_iters
+        self.requires_grad_ = False
+        self.requires_kmeans_init_ = True
+
+    @torch.no_grad()
+    def reinit_kmeans_codebook(self, z: torch.Tensor) -> torch.Tensor:
+        if self.requires_kmeans_init_:
+            from scipy.cluster.vq import kmeans2
+            z = z.detach().cpu().numpy()
+            codebook, codes = kmeans2(
+                z,
+                k=self.num_embeddings,
+                minit=self.kmeans_init_method,
+                iter=self.num_iters,
+            )
+            codebook = torch.from_numpy(codebook)
+
+            self.weight.data.copy_(codebook.to(device=self.weight.device, dtype=self.weight.dtype))
+
+            self.requires_kmeans_init_ = False
+        return self.weight
+
 
 class ResidualQuantizer(nn.Module):
     def __init__(
@@ -77,6 +115,7 @@ class ResidualQuantizer(nn.Module):
         commit_weight: float = 0.25,
         sk_iters: int = 50,
         sk_epsilons: Optional[Tuple[float]] = None,
+        trainable: bool = True, **ckwargs
     ):
         super().__init__()
 
@@ -84,12 +123,14 @@ class ResidualQuantizer(nn.Module):
         self.Item = self.dataset.fields[ITEM, ID]
 
         self.codebooks: Iterable[CodeBook]
+        codebook_type = CodeBook if trainable else KMeansCodeBook
         if apply_shared_codebook:
             self.codebooks = nn.ModuleList(
                 [
-                    CodeBook(
+                    codebook_type(
                         num_codewords,
                         hidden_size,
+                        **ckwargs
                     )
                 ]
                 * num_codebooks
@@ -97,9 +138,10 @@ class ResidualQuantizer(nn.Module):
         else:
             self.codebooks = nn.ModuleList(
                 [
-                    CodeBook(
+                    codebook_type(
                         num_codewords,
                         hidden_size,
+                        **ckwargs
                     )
                     for _ in range(num_codebooks)
                 ]
@@ -134,13 +176,14 @@ class ResidualQuantizer(nn.Module):
         L = len(self.codebooks)
         for l in range(L):
             ids_, c = self.match(z_res, l)
-            z_hat = z_hat + c
+            q = CodeBook.straight_through_estimator(z_res, c)
+            z_hat = z_hat + q
             loss += self.commit(c, z_res) + self.commit(z_res, c) * self.commit_weight
-            z_res = z_res - (z_res + (c - z_res).detach())
+            z_res = z_res - q
 
             ids.append(ids_)
 
-        return z + (z_hat - z).detach(), loss / L, torch.stack(ids, dim=-1)
+        return z_hat, loss / L, torch.stack(ids, dim=-1)
 
 
 class StructureDiffusionQuantizer(ResidualQuantizer):
@@ -157,6 +200,7 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
         sk_iters: int = 50,
         sk_epsilons: Optional[Tuple[float]] = None,
         solver: Literal['euler', 'midpoint', 'heun2', 'heun3', 'rk4', 'bosh3', 'adaptive_heun', 'fehlberg2', 'dopri5'] = 'dopri5',
+        trainable: bool = True, **ckwargs
     ):
         super().__init__(
             dataset,
@@ -167,6 +211,8 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
             commit_weight,
             sk_iters,
             sk_epsilons,
+            trainable,
+            **ckwargs
         )
 
         freerec.infoLogger(f"[SDQ] >>> ODE Solver: {solver}")
