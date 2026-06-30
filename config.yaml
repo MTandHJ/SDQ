@@ -1,53 +1,11 @@
-# command: python train_sdq.py
-# envs:
-#   root: ../data
-#   # dataset: Amazon2014Beauty_550_LOU
-#   # dataset: Amazon2014Toys_550_LOU
-#   # dataset: Amazon2014Tools_550_LOU
-#   dataset: Amazon2014Sports_550_LOU
-#   device: '0,1,2,3'
-# params:
-#   # weight_decay: [1.e-8, 1.e-4, 1.e-3, 1.e-2, 1.e-1]
-#   # num_chunks: [1, 4, 8, 10, 16, 64]
-#   partition_kernel: ['single', 'random', 'spectral', 'metis', 'louvain']
-#   # num_groups: [1, 2, 4, 8, 16, 32, 64, 128]
-#   # num_codebooks: [2, 4, 5]
-#   # ufactor: [1, 50, 100, 500, 1000, 5000, 7999, 10000]
-# defaults:
-#   config: configs/quantization/sdq.yaml
-
-# command: python train_t5.py
-# envs:
-#   root: ../data
-#   # dataset: Amazon2014Beauty_550_LOU
-#   # dataset: Amazon2014Sports_550_LOU
-#   # dataset: Amazon2014Toys_550_LOU
-#   dataset: Amazon2014Tools_550_LOU
-#   device: '3,3'
-# params:
-#   # dropout_rate: [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
-#   # input_dropout_rate: [0., 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7]
-#   # weight_decay: [0., 1.e-4, 1.e-3, 1.e-2]
-#   sem_id_ckpt: [
-#     semIDs/SDQ/Amazon2014Tools_550_LOU/0225211348/sem_id.pkl
-#   ]
-#   seed: [0, 1, 2, 3, 4]
-# defaults:
-#   epochs: 500
-#   config: configs/encoder-decoder/Amazon.yaml
-
-command: python train_llama.py
+command: python train_t5.py
 envs:
   root: ../data
-  # dataset: Amazon2014Beauty_550_LOU
-  # dataset: Amazon2014Sports_550_LOU
+  dataset: Amazon2014Beauty_550_LOU
   # dataset: Amazon2014Toys_550_LOU
-  dataset: Amazon2014Tools_550_LOU
-  device: '1'
+  # dataset: Amazon2014Sports_550_LOU
+  device: '0,1,2,3'
 params:
-  sem_id_ckpt: [
-    logs/SeqSam/Amazon2014Tools_550_LOU/0307222838/sem_id.pkl
-  ]
   seed: [0, 1, 2, 3, 4]
 defaults:
-  config: configs/decoder/Amazon.yaml
+  config: configs/t5/Amazon2014Beauty_550_LOU.yaml
