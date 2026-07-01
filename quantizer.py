@@ -202,7 +202,8 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
         commit_weight: float = 0.25,
         sk_iters: int = 50,
         sk_epsilons: Optional[Tuple[float]] = None,
-        solver: Literal['euler', 'midpoint', 'heun2', 'heun3', 'rk4', 'bosh3', 'adaptive_heun', 'fehlberg2', 'dopri5'] = 'dopri5',
+        solver: Literal['euler', 'rk4','dopri5'] = 'dopri5',
+        step_size: float = 0.5,
         trainable: bool = True, **ckwargs
     ):
         super().__init__(
@@ -220,6 +221,7 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
 
         freerec.infoLogger(f"[SDQ] >>> ODE Solver: {solver}")
         self.solver = solver
+        self.step_size = step_size
 
         if features is None:
             freerec.infoLogger("[SDQ] >>> Construct co-occurrence graph ...")
@@ -291,6 +293,7 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
                 x,
                 t,
                 method=self.solver,
+                options=dict(step_size=self.step_size)
             )[1]
         return z
 
