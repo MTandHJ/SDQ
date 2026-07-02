@@ -1,5 +1,5 @@
 # Data
-root: ../../data
+root: ../data
 tasktag: NEXTITEM
 dataset: Amazon2014Beauty_550_LOU
 
