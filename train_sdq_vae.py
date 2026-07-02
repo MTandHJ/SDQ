@@ -100,7 +100,8 @@ class SDQ(freerec.models.RecSysArch):
 
         self.quantizer = StructureDiffusionQuantizer(
             self.dataset, cfg.codebook_dim,
-            features=None, solver=cfg.solver,
+            features=None, 
+            solver=cfg.solver, step_size=cfg.step_size,
             num_codebooks=cfg.num_codebooks,
             num_codewords=cfg.num_codewords,
             apply_shared_codebook=cfg.apply_shared_codebook,
