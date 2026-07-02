@@ -22,7 +22,7 @@ lr: 1.e-4
 weight_decay: 0.
 
 # Inference
-partition_method: leiden
+partition_method: louvain
 resolution: 1.
 ufactor: 7999
 ngroups: 16

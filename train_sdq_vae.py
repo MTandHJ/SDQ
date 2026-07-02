@@ -45,7 +45,7 @@ cfg.add_argument(
 cfg.add_argument("--step-size", type=float, default=0.5, help="step size for euler & rk4 solver")
 
 # graph partition
-cfg.add_argument("--partition-method", type=str, default="leiden")
+cfg.add_argument("--partition-method", type=str, default="louvain")
 cfg.add_argument("--ngroups", type=int, default=16, help="spectral & metis")
 cfg.add_argument("--ufactor", type=int, default=7999, help="metis")
 cfg.add_argument("--resolution", type=float, default=1.0, help="for louvain & leiden")
