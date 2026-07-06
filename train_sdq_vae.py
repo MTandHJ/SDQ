@@ -39,7 +39,7 @@ cfg.add_argument("--dropout-rate", type=float, default=0.0, help="dropout rate")
 # ode solver
 cfg.add_argument(
     "--solver", type=str, 
-    choices=('euler','rk4', 'dopri5'),
+    choices=('euler', 'implicit_euler', 'trbdf2', 'rk4', 'dopri5'),
     default="rk4"
 )
 cfg.add_argument("--step-size", type=float, default=0.5, help="step size for euler & rk4 solver")

@@ -202,7 +202,7 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
         commit_weight: float = 0.25,
         sk_iters: int = 50,
         sk_epsilons: Optional[Tuple[float]] = None,
-        solver: Literal['euler', 'rk4','dopri5'] = 'dopri5',
+        solver: Literal['euler', 'implicit_euler', 'trbdf2', 'rk4', 'dopri5'] = 'dopri5',
         step_size: float = 0.5,
         trainable: bool = True, **ckwargs
     ):

@@ -33,7 +33,7 @@ cfg.add_argument("--num-iters", type=int, default=100)
 # ode solver
 cfg.add_argument(
     "--solver", type=str, 
-    choices=('euler', 'rk4', 'dopri5'),
+    choices=('euler', 'implicit_euler', 'trbdf2', 'rk4', 'dopri5'),
     default="euler"
 )
 cfg.add_argument("--step-size", type=float, default=0.5, help="step size for euler & rk4 solver")
