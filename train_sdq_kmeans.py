@@ -36,7 +36,6 @@ cfg.add_argument(
     choices=('euler', 'implicit_euler', 'trbdf2', 'rk4', 'dopri5'),
     default="euler"
 )
-cfg.add_argument("--step-size", type=float, default=0.5, help="step size for euler & rk4 solver")
 
 cfg.add_argument("--sem-feat-file", type=str, default="sentence-t5-xl_title_categories_brand.pkl", help="file of semantic features")
 
@@ -77,8 +76,7 @@ class SDQ(freerec.models.RecSysArch):
         self.encoder = nn.Identity()
         self.quantizer = StructureDiffusionQuantizer(
             self.dataset, cfg.codebook_dim,
-            features=None, 
-            solver=cfg.solver, step_size=cfg.step_size,
+            features=None, solver=cfg.solver,
             num_codebooks=cfg.num_codebooks,
             num_codewords=cfg.num_codewords,
             apply_shared_codebook=False,
