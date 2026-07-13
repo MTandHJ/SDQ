@@ -33,8 +33,8 @@ cfg.add_argument("--num-iters", type=int, default=100)
 # ode solver
 cfg.add_argument(
     "--solver", type=str, 
-    choices=('euler', 'implicit_euler', 'trbdf2', 'rk4', 'dopri5'),
-    default="euler"
+    choices=('euler', 'rk4', 'dopri5'),
+    default="dopri5"
 )
 
 cfg.add_argument("--sem-feat-file", type=str, default="sentence-t5-xl_title_categories_brand.pkl", help="file of semantic features")
