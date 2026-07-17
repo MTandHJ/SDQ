@@ -24,8 +24,8 @@ class Mope:
         row, col = edge_index[0], edge_index[1]
         self._adj = coo_array((edge_weight, (row, col)), shape=(Item.count, Item.count))
 
-        if method == "single":
-            self.solver = self.single
+        if method == "full":
+            self.solver = self.full
         elif method == "random":
             self.solver = partial(self.random, ngroups=ngroups)
         elif method == "spectral":
@@ -39,7 +39,7 @@ class Mope:
         else:
             raise NotImplementedError
 
-    def single(self, adj: coo_array, seed: int = 0):
+    def full(self, adj: coo_array, seed: int = 0):
         groups = np.zeros(adj.shape[0], dtype=np.int64)
         return groups
 
@@ -67,7 +67,7 @@ class Mope:
         adj = csr_array(
             (data, (row, col)),
             shape=adj_coo.shape,
-            dtype=np.float32,  # or adj_coo.dtype
+            dtype=np.float32,
         )
 
         clustering.fit(adj)
