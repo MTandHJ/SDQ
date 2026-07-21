@@ -253,7 +253,7 @@ class StructureDiffusionQuantizer(ResidualQuantizer):
         sim = features @ features.t()  # (N, N)
         sim.fill_diagonal_(-10.0)
 
-        edge_index, _ = freerec.graph.get_knn_graph(sim, k, symmetric=False)
+        edge_index, _ = freerec.graph.get_knn_graph(sim, k, symmetric=True)
         edge_weight = torch.ones_like(edge_index[0])
         edge_index, edge_weight = freerec.graph.add_remaining_self_loops(
             edge_index,
