@@ -2,9 +2,7 @@
 
 This repository contains the implementation of Structure Diffusion Quantization (SDQ) for semantic-ID learning in generative recommendation.
 
-## Environment Setup
-
-The project requires Python 3.10 or later. Create and activate a Conda environment, then install the default dependencies:
+## ⚙️ Requirements
 
 ```bash
 conda create -n sdq python=3.10
@@ -27,7 +25,9 @@ python encode_textual_features.py \
 
 This command writes `sentence-t5-xl_title_categories_brand.pkl` to the dataset directory. Set `--model-dir ""` to load `sentence-t5-xl` directly from Hugging Face instead of a local model directory. Select a PyTorch build compatible with the target CUDA runtime when preparing a GPU environment.
 
-## Running SDQ
+## 🚀 Usage
+
+### Tokenizer
 
 Run SDQ-VAE with the provided Beauty configuration:
 
@@ -43,7 +43,7 @@ python train_sdq_kmeans.py \
     --dataset Amazon2014Beauty_550_LOU
 ```
 
-## Training T5
+### T5
 
 T5 training requires the `sid_vocab.json` exported by an SDQ-VAE or SDQ-KMeans run. Specify its path through `--sid-vocab-file`:
 
@@ -56,3 +56,15 @@ python train_t5.py \
 Replace `<run-id>` with the identifier of the selected quantization run. For SDQ-KMeans, use the corresponding vocabulary under `logs/SDQ-KMeans/` instead.
 
 Replace the configuration path with `Amazon2014Toys_550_LOU.yaml` or `Amazon2014Sports_550_LOU.yaml` to run the corresponding dataset. Experiment artifacts, including the generated `sid_vocab.json`, are written under `logs/`.
+
+
+## Citation
+
+```
+@inproceedings{xu2027sdq,
+  title={Structure diffusion quantization: Learning stable coarse-to-fine semantic ids for generative recommendation},
+  author={Xu, Cong and Liao, Zihan and Wei, Lingxiao and Wang, Jun and Zhang, Wei},
+  booktitle={ACM Conference on Knowledge Discovery and Data Mining (KDD)},
+  year={2027}
+}
+```
