@@ -6,6 +6,7 @@ import torch
 import torch.nn.functional as F
 from converter import SemIDConverter, prefix_allowed_tokens_fn
 from transformers import T5Config, T5ForConditionalGeneration, T5Tokenizer
+from transformers.generation.logits_process import LogitsProcessorList
 from transformers.generation.stopping_criteria import StoppingCriteriaList
 
 DTYPE = torch.bfloat16
@@ -16,7 +17,7 @@ BEAM_SCORE_BASE = 1.0
 freerec.declare(version="1.0.1")
 
 cfg = freerec.parser.Parser()
-cfg.add_argument("--maxlen", type=int, default=50, help="maximum item sequence length")
+cfg.add_argument("--maxlen", type=int, default=20, help="maximum item sequence length")
 cfg.add_argument("--embedding-dim", type=int, default=128, help="T5 d_model")
 cfg.add_argument("--attention-size", type=int, default=64, help="T5 d_kv")
 cfg.add_argument("--intermediate-size", type=int, default=64 * 4, help="T5 d_ff")
@@ -89,7 +90,6 @@ class TIGERT5(freerec.models.SeqRecArch):
         self.generate_kwargs = {
             "num_beams": cfg.num_beams,
             "num_return_sequences": cfg.num_beams,
-            "prefix_allowed_tokens_fn": prefix_allowed_tokens_fn(self.converter),
             "stopping_criteria": StoppingCriteriaList(
                 [self.converter.stopping_criteria(num_items=1)]
             ),
@@ -97,8 +97,10 @@ class TIGERT5(freerec.models.SeqRecArch):
             "return_dict_in_generate": True,
             "output_scores": True,
         }
-        if not cfg.apply_constrained_beam_search:
-            del self.generate_kwargs["prefix_allowed_tokens_fn"]
+        if cfg.apply_constrained_beam_search:
+            self.generate_kwargs["logits_processor"] = LogitsProcessorList(
+                [self.converter.logits_processor()]
+            )
 
     def format_item_ids(self, field, item_ids: Iterable[int]) -> List[str]:
         return [self.converter.format(item) for item in item_ids]
