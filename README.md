@@ -1,6 +1,15 @@
-# SDQ
 
-This repository contains the implementation of Structure Diffusion Quantization (SDQ) for semantic-ID learning in generative recommendation.
+
+<h1 align="center">Structure Diffusion Quantization</h1>
+
+<p align="center">
+    [<a href="">paper</a>] &bull;
+    [<a href="https://www.mtandhj.com/slides/sdq/">slide</a>] &bull;
+    [<a href="https://github.com/MTandHJ/RecBoard">baselines</a>]
+</p>
+
+
+This repository contains the implementation of "**Structure Diffusion Quantization: Learning Stable Coarse-to-Fine Semantic IDs for Generative Recommendation**".
 
 ## ⚙️ Requirements
 
@@ -29,14 +38,14 @@ This command writes `sentence-t5-xl_title_categories_brand.pkl` to the dataset d
 
 ### Tokenizer
 
-Run SDQ-VAE with the provided Beauty configuration:
+Run `SDQ-VAE` with the provided Beauty configuration:
 
 ```bash
 python train_sdq_vae.py \
     --config configs/sdq/Amazon2014Beauty_550_LOU.yaml
 ```
 
-Run the non-trainable SDQ-KMeans variant:
+Run the non-trainable `SDQ-KMeans` variant:
 
 ```bash
 python train_sdq_kmeans.py \
